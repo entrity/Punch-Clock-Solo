@@ -1,0 +1,7 @@
+[Unit]
+Description=Listen to gdbus and punch the work clock when indicated
+After=dbus.service
+Requires=dbus.service
+
+[Service]
+ExecStart=/usr/local/bin/punch-clock-listen.sh
