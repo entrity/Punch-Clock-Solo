@@ -35,7 +35,7 @@ compute_stats () {
 			LAST_STATUS=$STATUS
 			LAST_TIME="$TIME"
 		fi
-		echo -e "$TIMESTR $STATUS \t`clock2str $WORKED_SEC`"
+		printf "%-30s %3s \t%s\n" "$TIMESTR" "$STATUS" `clock2str $WORKED_SEC`
 	done < "$LOG"
 	if [[ $LAST_STATUS == In ]]; then
 		TIME=`date +%s`
