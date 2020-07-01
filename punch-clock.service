@@ -3,5 +3,9 @@ Description=Listen to gdbus and punch the work clock when indicated
 After=dbus.service
 Requires=dbus.service
 
+[Install]
+WantedBy=multi-user.target
+
 [Service]
 ExecStart=/usr/local/bin/punch-clock-listen.sh
+Restart=always
