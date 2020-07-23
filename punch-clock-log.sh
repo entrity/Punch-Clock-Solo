@@ -37,6 +37,7 @@ punch_clock () {
 # Read clock punches from /var/log and compute stats for the current week
 compute_stats () {
 	WORKED_SEC=0
+	TODAY_WORKED_SEC=0
 	LAST_STATUS=Out
 	LAST_TIME=
 	while IFS=$'\t' read STATUS TIMESTR MESSAGE; do
@@ -49,6 +50,9 @@ compute_stats () {
 			LAST_TIME="$TIME"
 		elif [[ $STATUS == Out ]]; then
 			WORKED_SEC=$(( $WORKED_SEC + $TIME - $LAST_TIME ))
+			if is_today $TIME; then
+				TODAY_WORKED_SEC=$(( $TODAY_WORKED_SEC + $TIME - $LAST_TIME ))
+			fi
 			LAST_STATUS=$STATUS
 			LAST_TIME="$TIME"
 		fi
@@ -57,11 +61,20 @@ compute_stats () {
 	if [[ $LAST_STATUS == In ]]; then
 		TIME=`date +%s`
 		WORKED_SEC=$(( $WORKED_SEC + $TIME - $LAST_TIME ))
+		if is_today $TIME; then
+			TODAY_WORKED_SEC=$(( $TODAY_WORKED_SEC + $TIME - $LAST_TIME ))
+		fi
 	fi
-	printf '%10s\t%s\n' worked `clock2str $WORKED_SEC`
+	printf '%10s\t%s\t(today\t%s)\n' worked `clock2str $WORKED_SEC` `clock2str $TODAY_WORKED_SEC`
 	REMAIN_SEC=$(( $SECS_IN_40_HRS - $WORKED_SEC ))
 	REMAIN_HR=$(( $REMAIN_SEC / 3600 ))
-	printf '%10s\t%s\n' remain `clock2str $REMAIN_SEC`
+	REMAIN_FOR_8_HRS_TODAY=$(( 60 * 60 * 8 - $TODAY_WORKED_SEC ))
+	printf '%10s\t%s\t(to 8h\t%s)\n' remain `clock2str $REMAIN_SEC` `clock2str $REMAIN_FOR_8_HRS_TODAY`
+}
+
+is_today () {
+	local FMT=%Y%m%d
+	[[ `date -d @$1 +$FMT` == `date +$FMT` ]]
 }
 
 clock2str () {
