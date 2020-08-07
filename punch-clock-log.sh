@@ -41,9 +41,11 @@ compute_stats () {
 	LAST_STATUS=Out
 	LAST_TIME=
 	while IFS=$'\t' read STATUS TIMESTR MESSAGE; do
+		DISPLAY_WORKED=
 		TIME=`date -d "$TIMESTR" +%s`
 		if [[ $STATUS =~ In|Out ]] && [[ $LAST_STATUS == $STATUS ]]; then
 			>&2 echo "Error $STATUS followed by $LAST_STATUS ($TIMESTR)"
+			>&2 printf "sudo vim %q\n" "$LOG"
 			exit 1
 		elif [[ $STATUS == In ]]; then
 			LAST_STATUS=$STATUS
@@ -55,8 +57,9 @@ compute_stats () {
 			fi
 			LAST_STATUS=$STATUS
 			LAST_TIME="$TIME"
+			DISPLAY_WORKED=`clock2str $WORKED_SEC`
 		fi
-		printf "%-30s %3s \t%8s\t%s\n" "$TIMESTR" "$STATUS" `clock2str $WORKED_SEC` "$MESSAGE"
+		printf "%-30s\t%8s %-6s\t%s\n" "$TIMESTR" "$DISPLAY_WORKED" "$STATUS" "$MESSAGE"
 	done < "$LOG"
 	if [[ $LAST_STATUS == In ]]; then
 		TIME=`date +%s`
@@ -65,11 +68,11 @@ compute_stats () {
 			TODAY_WORKED_SEC=$(( $TODAY_WORKED_SEC + $TIME - $LAST_TIME ))
 		fi
 	fi
-	printf '%10s\t%s\t(today\t%s)\n' worked `clock2str $WORKED_SEC` `clock2str $TODAY_WORKED_SEC`
+	printf '%10s\t%8s\t(%s today)\n' worked `clock2str $WORKED_SEC` `clock2str $TODAY_WORKED_SEC`
 	REMAIN_SEC=$(( $SECS_IN_40_HRS - $WORKED_SEC ))
 	REMAIN_HR=$(( $REMAIN_SEC / 3600 ))
 	REMAIN_FOR_8_HRS_TODAY=$(( 60 * 60 * 8 - $TODAY_WORKED_SEC ))
-	printf '%10s\t%s\t(to 8h\t%s)\n' remain `clock2str $REMAIN_SEC` `clock2str $REMAIN_FOR_8_HRS_TODAY`
+	printf '%10s\t%8s\t(%s to 8hrs)\n' remain `clock2str $REMAIN_SEC` `clock2str $REMAIN_FOR_8_HRS_TODAY`
 }
 
 is_today () {
