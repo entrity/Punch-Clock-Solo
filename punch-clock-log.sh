@@ -29,7 +29,7 @@ punch_clock () {
 	# Update Rocket.chat status
 	case "$1" in
 		In) set_rocket_chat_status online "${MSG}";;
-		Out) set_rocket_chat_status away "${MSG}";;
+		Out) set_rocket_chat_status offline "${MSG}";;
 	esac
 	wait
 }
