@@ -26,28 +26,24 @@ compute_stats () {
 	TODAY_WORKED_SEC=0
 	LAST_STATUS=Out
 	LAST_TIME=
-	while IFS=$'\t' read ACTION TIMESTR MESSAGE; do
+	while IFS=$'\t' read STATUS TIMESTR MESSAGE; do
 		DISPLAY_WORKED=
 		TIME=`date -d "$TIMESTR" +%s`
-		if [[ $ACTION =~ In|Out ]] && [[ $LAST_STATUS == $ACTION ]]; then
-			>&2 echo "Error $ACTION followed by $LAST_STATUS ($TIMESTR)"
+		if [[ $STATUS =~ In|Out ]] && [[ $LAST_STATUS == $STATUS ]]; then
+			>&2 echo "Error $STATUS followed by $LAST_STATUS ($TIMESTR)"
 			>&2 printf "sudo vim %q\n" "$LOG"
 			exit 1
-		elif [[ $ACTION == In ]]; then
-			LAST_STATUS=$ACTION
+		elif [[ $STATUS == In ]]; then
+			LAST_STATUS=$STATUS
 			LAST_TIME="$TIME"
-		elif [[ $ACTION == Out ]]; then
+		elif [[ $STATUS == Out ]]; then
 			WORKED_SEC=$(( $WORKED_SEC + $TIME - $LAST_TIME ))
 			if is_today $TIME; then
 				TODAY_WORKED_SEC=$(( $TODAY_WORKED_SEC + $TIME - $LAST_TIME ))
 			fi
-			LAST_STATUS=$ACTION
+			LAST_STATUS=$STATUS
 			LAST_TIME="$TIME"
 			DISPLAY_WORKED=`clock2str $WORKED_SEC`
-		elif [[ $ACTION == Path ]]; then
-			echo "$LOG"
-		elif [[ $ACTION == Edit ]]; then
-			sudo vim "$LOG"
 		fi
 		printf "%-30s\t%8s %-6s\t%s\n" "$TIMESTR" "$DISPLAY_WORKED" "$MODE" "$MESSAGE"
 	done < "$LOG"
@@ -75,8 +71,12 @@ clock2str () {
 	printf '%2d:%s' $HRS `date -d @$1 -u +%M:%S`
 }
 
-if (($#)); then
-	punch_clock $*
-else
+if ! (($#)); then
 	compute_stats
+elif [[ ${*,,} =~ ^in|^out ]]; then
+	punch_clock $*
+elif [[ ${*,,} =~ ^path ]]; then
+	echo "$LOG"
+elif [[ ${*,,} =~ ^edit ]]; then
+	vim "$LOG"
 fi
