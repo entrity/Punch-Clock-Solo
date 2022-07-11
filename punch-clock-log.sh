@@ -27,25 +27,29 @@ compute_stats () {
 	LAST_STATUS=Out
 	LAST_TIME=
 	while IFS=$'\t' read STATUS TIMESTR MESSAGE; do
-		DISPLAY_WORKED=
+		INTERVAL=0
+		DISPLAY_INTERVAL=
 		TIME=`date -d "$TIMESTR" +%s`
+		if (($TIME)) && (($LAST_TIME)); then
+			INTERVAL=$(( TIME - LAST_TIME ))
+		fi
 		if [[ $STATUS =~ In|Out ]] && [[ $LAST_STATUS == $STATUS ]]; then
 			>&2 echo "Error $STATUS followed by $LAST_STATUS ($TIMESTR)"
 			>&2 printf "sudo vim %q\n" "$LOG"
 			exit 1
-		elif [[ $STATUS == In ]]; then
-			LAST_STATUS=$STATUS
-			LAST_TIME="$TIME"
-		elif [[ $STATUS == Out ]]; then
-			WORKED_SEC=$(( $WORKED_SEC + $TIME - $LAST_TIME ))
+		fi
+		if [[ $STATUS == Out ]]; then
+			WORKED_SEC=$(( WORKED_SEC + INTERVAL ))
 			if is_today $TIME; then
 				TODAY_WORKED_SEC=$(( $TODAY_WORKED_SEC + $TIME - $LAST_TIME ))
 			fi
-			LAST_STATUS=$STATUS
-			LAST_TIME="$TIME"
-			DISPLAY_WORKED=`clock2str $WORKED_SEC`
+			printf -v DISPLAY_INTERVAL "\033[32m%s\033[0m" $(clock2str $WORKED_SEC)
+		elif [[ $STATUS == In ]]; then
+			printf -v DISPLAY_INTERVAL "\033[35m%s\033[0m" $(clock2str $INTERVAL)
 		fi
-		printf "%-30s\t%8s %-6s\t%s\n" "$TIMESTR" "$DISPLAY_WORKED" "$MODE" "$MESSAGE"
+		LAST_STATUS=$STATUS
+		LAST_TIME=$TIME
+		printf "%-30s\t%8s %-6s\t%s\n" "$TIMESTR" "$DISPLAY_INTERVAL" "$MODE" "$MESSAGE"
 	done < "$LOG"
 	if [[ $LAST_STATUS == In ]]; then
 		TIME=`date +%s`
