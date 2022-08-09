@@ -1,7 +1,9 @@
 #!/bin/bash
 
+set -euo pipefail
+
 # Today or the most recent Sunday
-SUNDAY=`date -d "$day -$(date +%w) days" +%Y-%m-%d`
+SUNDAY=`date -d "-$(date +%w) days" +%Y-%m-%d`
 LOG=/var/log/punch-clock/$SUNDAY.tsv
 if ! [[ -e $LOG ]]; then
 	touch $LOG
@@ -26,6 +28,7 @@ compute_stats () {
 	TODAY_WORKED_SEC=0
 	LAST_STATUS=Out
 	LAST_TIME=
+	LAST_TIMESTR=
 	while IFS=$'\t' read STATUS TIMESTR MESSAGE; do
 		INTERVAL=0
 		DISPLAY_INTERVAL=
@@ -36,6 +39,7 @@ compute_stats () {
 		if [[ $STATUS =~ In|Out ]] && [[ $LAST_STATUS == $STATUS ]]; then
 			>&2 echo "Error $STATUS followed by $LAST_STATUS ($TIMESTR)"
 			>&2 printf "sudo vim %q\n" "$LOG"
+			printf "sudo vim %q\n" "$LOG" | xsel -i -b
 			exit 1
 		fi
 		if [[ $STATUS == Out ]]; then
@@ -43,13 +47,19 @@ compute_stats () {
 			if is_today $TIME; then
 				TODAY_WORKED_SEC=$(( $TODAY_WORKED_SEC + $TIME - $LAST_TIME ))
 			fi
-			printf -v DISPLAY_INTERVAL "\033[32m%s\033[0m" $(clock2str $WORKED_SEC)
+			printf -v DISPLAY_INTERVAL "\033[32m%8s\033[0m" $(clock2str $INTERVAL)
+			printf -v SUM "\033[33m%8s\033[0m" $(clock2str $WORKED_SEC)
 		elif [[ $STATUS == In ]]; then
-			printf -v DISPLAY_INTERVAL "\033[35m%s\033[0m" $(clock2str $INTERVAL)
+			printf -v DISPLAY_INTERVAL "\033[35m%8s\033[0m" $(clock2str $INTERVAL)
+			printf -v SUM "%8s\033[0m" ""
 		fi
+		if [[ ${TIMESTR::3} != ${LAST_TIMESTR::3} ]]; then
+			printf "\033[53m"
+		fi
+		printf "%-30s %s %s %s\n" "$TIMESTR" "$SUM" "$DISPLAY_INTERVAL" "$MESSAGE"
 		LAST_STATUS=$STATUS
 		LAST_TIME=$TIME
-		printf "%-30s\t%8s %-6s\t%s\n" "$TIMESTR" "$DISPLAY_INTERVAL" "$MODE" "$MESSAGE"
+		LAST_TIMESTR="$TIMESTR"
 	done < "$LOG"
 	if [[ $LAST_STATUS == In ]]; then
 		TIME=`date +%s`
