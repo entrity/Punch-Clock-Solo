@@ -38,8 +38,8 @@ compute_stats () {
 		fi
 		if [[ $STATUS =~ In|Out ]] && [[ $LAST_STATUS == $STATUS ]]; then
 			>&2 echo "Error $STATUS followed by $LAST_STATUS ($TIMESTR)"
-			>&2 printf "sudo vim %q\n" "$LOG"
 			printf "sudo vim %q\n" "$LOG" | xsel -i -b
+			>&2 printf "\033[32msudo vim %q\033[33m (copied to clipboard)\033[0m\n" "$LOG"
 			exit 1
 		fi
 		if [[ $STATUS == Out ]]; then
@@ -68,7 +68,8 @@ compute_stats () {
 			TODAY_WORKED_SEC=$(( $TODAY_WORKED_SEC + $TIME - $LAST_TIME ))
 		fi
 	fi
-	printf '%10s\t%8s\t(%s today)\n' worked `clock2str $WORKED_SEC` `clock2str $TODAY_WORKED_SEC`
+	printf "    \033[3mcurrently \033[36m%s\033[0m\n" "$LAST_STATUS"
+	printf '%10s\t\033[33m%8s\033[0m\t(%s today)\n' worked `clock2str $WORKED_SEC` `clock2str $TODAY_WORKED_SEC`
 	REMAIN_SEC=$(( $SECS_IN_40_HRS - $WORKED_SEC ))
 	REMAIN_HR=$(( $REMAIN_SEC / 3600 ))
 	REMAIN_FOR_8_HRS_TODAY=$(( 60 * 60 * 8 - $TODAY_WORKED_SEC ))
