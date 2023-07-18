@@ -75,28 +75,24 @@ class Calculator(object):
 				human_interval = "\033[32m%8s\033[0m" % clock2str(interval)
 			elif status == 'In':
 				acc = ''
-				human_interval = "\033[35m%8s\033[0m" % clock2str(interval)
+				human_interval = "\033[35m%8s\033[0m" % (clock2str(interval) or 'n/a')
 			if prev_time is not None and prev_time.date() != time.date():
 				overline() # Change of day. Add overline
 
 			# Print one punch
-			out("%-30s \033[33m%8s\033[0m %s %s\n" % (timestr, acc, human_interval, message))
+			out("%-30s \033[33m%8s\033[0m %s %s\n" % (timestr, acc, human_interval, message or ''))
 			prev_time, prev_status = (time, status)
 
-		overline()
-		out('\033[3;36m%14s\033[33m ' % (status))
-		if status == 'In':
-			out('%8s\n' % (clock2str(worked_secs + interval.total_seconds())))
-		else:
-			out('\n')
-		rst()
-
 		# Print summary
-		out('%10s\t\033[33m%8s\033[0m\t(%s today)\n' % ('worked', clock2str(worked_secs), clock2str(today_worked_secs)))
+		overline()
+		if status == 'In':
+			interval = NOW - time.astimezone()
+			worked_secs += interval.total_seconds()
+			today_worked_secs += interval.total_seconds()
 		remaining_time_for_week = timedelta(hours=40) - timedelta(seconds=worked_secs)
 		remaining_time_for_day = timedelta(hours=8) - timedelta(seconds=today_worked_secs)
-		out('%10s\t%8s\t(%s to 8hrs)\n' % ('remain', clock2str(remaining_time_for_week), clock2str(remaining_time_for_day)))
-
+		out('\033[3;36m(%3s)\033[0;53m %6s\t%8s\t(%s today)\033[0m\n' % (status, 'worked', clock2str(worked_secs), clock2str(today_worked_secs)))
+		out('%12s\t\033[2m%8s\t(%s to 8hrs)\033[0m\n' % ('remain', clock2str(remaining_time_for_week), clock2str(remaining_time_for_day)))
 
 # if sys.
 arg1 = sys.argv[1].lower() if len(sys.argv) > 1 else None
@@ -105,6 +101,6 @@ if arg1 is None:
 elif re.match(r'^in|^out', arg1):
 	Runner().punch_clock(*sys.argv[1:])
 elif re.match(r'^path', arg1):
-	out('%s\n' % Runner().savefile_path)
+	out('%s\n' % SAVEFILE_PATH)
 elif re.match(r'^edit', arg1):
-	os.execlp('vim', 'vim', Runner().savefile_path)
+	os.execlp('vim', 'vim', SAVEFILE_PATH)
